@@ -1,12 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth-provider";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { usePathname } from "next/navigation";
+import {
+    LayoutDashboard,
+    Users,
+    CheckSquare,
+    Settings,
+    LogOut,
+    Menu,
+    BarChart3,
+    Megaphone,
+    FileText,
+    UserCog,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Users, CheckSquare, Settings, LogOut, MessageSquare } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useState } from "react";
 
 export default function DashboardLayout({
     children,
@@ -14,72 +32,153 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const router = useRouter();
-    const { user, loading } = useAuth();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
-    if (!user) {
-        router.push("/login");
-        return null;
-    }
+    // ⚠️ PROTOTYPE MODE: No Auth Check
+    const user = { email: "demo@viberly.app", displayName: "Demo User" };
 
-    const handleLogout = async () => {
-        await signOut(auth);
-        router.push("/login");
-    };
-
-    const navItems = [
-        { href: "/dashboard", label: "Inbox", icon: MessageSquare },
-        { href: "/dashboard/contacts", label: "Contacts", icon: Users },
-        { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-        { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    const routes = [
+        {
+            label: "Inbox",
+            icon: LayoutDashboard,
+            href: "/dashboard",
+            active: pathname === "/dashboard",
+        },
+        {
+            label: "Analytics",
+            icon: BarChart3,
+            href: "/dashboard/analytics",
+            active: pathname === "/dashboard/analytics",
+        },
+        {
+            label: "Campaigns",
+            icon: Megaphone,
+            href: "/dashboard/campaigns",
+            active: pathname === "/dashboard/campaigns",
+        },
+        {
+            label: "Templates",
+            icon: FileText,
+            href: "/dashboard/templates",
+            active: pathname === "/dashboard/templates",
+        },
+        {
+            label: "Team",
+            icon: UserCog,
+            href: "/dashboard/team",
+            active: pathname === "/dashboard/team",
+        },
+        {
+            label: "Contacts",
+            icon: Users,
+            href: "/dashboard/contacts",
+            active: pathname.startsWith("/dashboard/contacts"),
+        },
+        {
+            label: "Tasks",
+            icon: CheckSquare,
+            href: "/dashboard/tasks",
+            active: pathname === "/dashboard/tasks",
+        },
+        {
+            label: "Settings",
+            icon: Settings,
+            href: "/dashboard/settings",
+            active: pathname === "/dashboard/settings",
+        },
     ];
 
     return (
-        <div className="flex h-screen bg-gray-100">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white shadow-md hidden md:flex flex-col">
-                <div className="p-6">
-                    <h1 className="text-2xl font-bold text-blue-600">Viberly</h1>
+        <div className="flex min-h-screen flex-col md:flex-row">
+            {/* Mobile Header */}
+            <header className="flex items-center justify-between border-b px-6 py-4 md:hidden">
+                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                    <span className="text-xl text-blue-600">Viberly</span>
+                </Link>
+                <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                    <SheetTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <Menu className="h-6 w-6" />
+                            <span className="sr-only">Toggle navigation menu</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[240px] sm:w-[300px]">
+                        <nav className="flex flex-col gap-4 mt-8">
+                            {routes.map((route) => (
+                                <Link
+                                    key={route.href}
+                                    href={route.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${route.active
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                        }`}
+                                >
+                                    <route.icon className="h-4 w-4" />
+                                    {route.label}
+                                </Link>
+                            ))}
+                        </nav>
+                    </SheetContent>
+                </Sheet>
+            </header>
+
+            {/* Desktop Sidebar */}
+            <aside className="hidden w-64 flex-col border-r bg-gray-50/40 md:flex">
+                <div className="flex h-14 items-center border-b px-6">
+                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                        <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+                            <img src="/logo.png" alt="Viberly" className="object-cover" />
+                        </div>
+                        <span className="text-xl text-blue-600">Viberly</span>
+                    </Link>
                 </div>
-                <nav className="flex-1 px-4 space-y-2">
-                    {navItems.map((item) => {
-                        const Icon = item.icon;
-                        const isActive = pathname === item.href;
-                        return (
+                <div className="flex-1 overflow-auto py-4">
+                    <nav className="grid items-start px-4 text-sm font-medium">
+                        {routes.map((route) => (
                             <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                        ? "bg-blue-50 text-blue-600"
-                                        : "text-gray-600 hover:bg-gray-50"
+                                key={route.href}
+                                href={route.href}
+                                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${route.active
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "text-gray-500 hover:text-gray-900"
                                     }`}
                             >
-                                <Icon className="h-5 w-5" />
-                                <span className="font-medium">{item.label}</span>
+                                <route.icon className="h-4 w-4" />
+                                {route.label}
                             </Link>
-                        );
-                    })}
-                </nav>
-                <div className="p-4 border-t">
-                    <div className="flex items-center gap-3 px-4 py-3 mb-2">
-                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                            {user.displayName?.[0] || "U"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{user.displayName || "User"}</p>
-                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                        </div>
-                    </div>
-                    <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50" onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
-                    </Button>
+                        ))}
+                    </nav>
+                </div>
+                <div className="mt-auto border-t p-4">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start gap-2 px-2">
+                                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                                    {user?.displayName?.[0] || "U"}
+                                </div>
+                                <div className="flex flex-col items-start text-xs">
+                                    <span className="font-medium">{user?.displayName}</span>
+                                    <span className="text-gray-500 truncate w-32">{user?.email}</span>
+                                </div>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>Profile</DropdownMenuItem>
+                            <DropdownMenuItem>Billing</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600">
+                                <LogOut className="mr-2 h-4 w-4" /> Log out
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto p-8">
+            <main className="flex-1 overflow-y-auto p-4 md:p-6">
                 {children}
             </main>
         </div>

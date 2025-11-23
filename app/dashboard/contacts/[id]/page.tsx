@@ -2,15 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { Contact } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Sparkles, Send, Phone, Mail, Loader2 } from "lucide-react";
-import { generateReply } from "@/app/actions/ai";
+import { ArrowLeft, Sparkles, Send, Phone, Mail, Loader2, MessageCircle } from "lucide-react";
+
+// ⚠️ MOCK DATA FOR PROTOTYPE
+const MOCK_LEAD: Contact = {
+    id: "1",
+    userId: "user1",
+    name: "Rahul Sharma",
+    phone: "+919876543210",
+    email: "rahul@example.com",
+    source: "WhatsApp",
+    status: "Lead",
+    aiScore: 85,
+    notes: ["Interested in premium plan", "Asked for discount"],
+    lastInteraction: new Date(),
+    createdAt: new Date(),
+};
 
 export default function LeadDetailPage() {
     const { id } = useParams();
@@ -21,57 +33,76 @@ export default function LeadDetailPage() {
     const [suggestedReply, setSuggestedReply] = useState("");
 
     useEffect(() => {
-        const fetchLead = async () => {
-            if (!id) return;
-            const docRef = doc(db, "contacts", id as string);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                setLead({ id: docSnap.id, ...docSnap.data() } as Contact);
-            }
+        // Simulate fetch
+        setTimeout(() => {
+            setLead(MOCK_LEAD);
             setLoading(false);
-        };
-        fetchLead();
+        }, 500);
     }, [id]);
 
     const handleGenerateReply = async () => {
-        if (!lead) return;
         setAiLoading(true);
-        try {
-            const reply = await generateReply(lead);
-            setSuggestedReply(reply || "No suggestion generated.");
-        } catch (error) {
-            console.error("AI Error:", error);
-            setSuggestedReply("Error generating reply. Please check your API key.");
-        } finally {
+        // Simulate AI delay
+        setTimeout(() => {
+            setSuggestedReply("Hello Rahul, thanks for your interest in the Premium Plan! I can offer you a 10% discount if you sign up this week. Would you like me to send the payment link?");
             setAiLoading(false);
+        }, 1500);
+    };
+
+    const handleWhatsApp = () => {
+        if (lead) {
+            window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
         }
     };
 
-    if (loading) return <div className="p-8">Loading...</div>;
+    const handleCall = () => {
+        if (lead) {
+            window.location.href = `tel:${lead.phone}`;
+        }
+    };
+
+    if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-blue-600" /></div>;
     if (!lead) return <div className="p-8">Lead not found</div>;
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="space-y-6 max-w-4xl mx-auto pb-20">
             <Button variant="ghost" onClick={() => router.back()} className="mb-4">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Inbox
             </Button>
 
-            <div className="flex items-start justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">{lead.name}</h1>
-                    <div className="flex items-center gap-4 mt-2 text-gray-500">
-                        <div className="flex items-center gap-1">
-                            <Phone className="h-4 w-4" /> {lead.phone}
-                        </div>
-                        {lead.email && (
-                            <div className="flex items-center gap-1">
-                                <Mail className="h-4 w-4" /> {lead.email}
+            {/* Header Card */}
+            <Card className="border-l-4 border-l-blue-500">
+                <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold">{lead.name}</h1>
+                            <div className="flex items-center gap-4 mt-2 text-gray-500">
+                                <div className="flex items-center gap-1">
+                                    <Phone className="h-4 w-4" /> {lead.phone}
+                                </div>
                             </div>
-                        )}
+                        </div>
+                        <Badge className="text-lg px-4 py-1">{lead.status}</Badge>
                     </div>
-                </div>
-                <Badge className="text-lg px-4 py-1">{lead.status}</Badge>
-            </div>
+
+                    {/* Quick Actions */}
+                    <div className="grid grid-cols-2 gap-4 mt-6">
+                        <Button
+                            className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-lg"
+                            onClick={handleWhatsApp}
+                        >
+                            <MessageCircle className="mr-2 h-5 w-5" /> WhatsApp
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 h-12 text-lg"
+                            onClick={handleCall}
+                        >
+                            <Phone className="mr-2 h-5 w-5" /> Call
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column: Lead Info */}
@@ -83,7 +114,10 @@ export default function LeadDetailPage() {
                         <CardContent className="space-y-4">
                             <div>
                                 <label className="text-sm font-medium text-gray-500">Source</label>
-                                <p>{lead.source}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <MessageCircle className="h-4 w-4 text-green-500" />
+                                    <span>{lead.source}</span>
+                                </div>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-gray-500">AI Score</label>
@@ -94,9 +128,9 @@ export default function LeadDetailPage() {
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-gray-500">Notes</label>
-                                <div className="bg-gray-50 p-3 rounded-md mt-1 text-sm">
+                                <div className="bg-gray-50 p-3 rounded-md mt-1 text-sm space-y-2">
                                     {lead.notes.length > 0 ? lead.notes.map((note, i) => (
-                                        <p key={i} className="mb-1">• {note}</p>
+                                        <p key={i} className="border-b border-gray-200 last:border-0 pb-1 last:pb-0">• {note}</p>
                                     )) : "No notes yet."}
                                 </div>
                             </div>
@@ -114,7 +148,7 @@ export default function LeadDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-sm text-blue-600">
-                                Need help following up? Let AI analyze this lead and suggest the perfect WhatsApp message.
+                                Generate a personalized follow-up message in Hinglish.
                             </p>
                             <Button
                                 onClick={handleGenerateReply}
@@ -126,7 +160,7 @@ export default function LeadDetailPage() {
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...
                                     </>
                                 ) : (
-                                    "Analyze Lead & Suggest Reply"
+                                    "Generate Follow-up Script"
                                 )}
                             </Button>
 
@@ -136,10 +170,13 @@ export default function LeadDetailPage() {
                                     <Textarea
                                         value={suggestedReply}
                                         readOnly
-                                        className="mt-2 min-h-[150px] bg-white"
+                                        className="mt-2 min-h-[120px] bg-white border-blue-200"
                                     />
-                                    <Button className="w-full mt-2 bg-green-600 hover:bg-green-700">
-                                        <Send className="mr-2 h-4 w-4" /> Send via WhatsApp
+                                    <Button
+                                        className="w-full mt-2 bg-green-600 hover:bg-green-700"
+                                        onClick={() => window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}?text=${encodeURIComponent(suggestedReply)}`, '_blank')}
+                                    >
+                                        <Send className="mr-2 h-4 w-4" /> Send on WhatsApp
                                     </Button>
                                 </div>
                             )}

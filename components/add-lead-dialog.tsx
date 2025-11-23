@@ -12,57 +12,38 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; // Need to install label or just use div
 import { Plus, Loader2 } from "lucide-react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/components/auth-provider";
 
 export function AddLeadDialog() {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const { user } = useAuth();
 
     // Form State
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
-    const [source, setSource] = useState("Web");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
-
         setLoading(true);
-        try {
-            await addDoc(collection(db, "contacts"), {
-                userId: user.uid,
-                name,
-                phone,
-                email,
-                source,
-                status: "Lead",
-                aiScore: 50, // Default
-                notes: [],
-                lastInteraction: serverTimestamp(),
-                createdAt: serverTimestamp(),
-            });
+
+        // ⚠️ MOCK ACTION: Simulate API call
+        setTimeout(() => {
+            console.log("Lead Added:", { name, phone, email });
+            alert(`Lead "${name}" added! (Prototype Mode)`);
+            setLoading(false);
             setOpen(false);
             // Reset form
             setName("");
             setPhone("");
             setEmail("");
-        } catch (error) {
-            console.error("Error adding lead:", error);
-        } finally {
-            setLoading(false);
-        }
+        }, 1000);
     };
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
+                <Button className="bg-blue-600 hover:bg-blue-700">
                     <Plus className="mr-2 h-4 w-4" /> Add Lead
                 </Button>
             </DialogTrigger>
